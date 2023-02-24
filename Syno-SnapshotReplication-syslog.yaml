@@ -1,0 +1,51 @@
+zabbix_export:
+  version: '6.0'
+  date: '2023-02-24T13:51:11Z'
+  groups:
+    -
+      uuid: f0c8216b0c114e32aa716f3424b12191
+      name: Synology-SnapshotReplication-syslog
+  templates:
+    -
+      uuid: ff752e6f8d034518aeaac2b2bbb4bf6d
+      template: Syno-SnapshotReplication-syslog
+      name: Syno-SnapshotReplication-syslog
+      groups:
+        -
+          name: Synology-SnapshotReplication-syslog
+      items:
+        -
+          uuid: 85a9f9a95dc641a390ee87eb8ce6f2a4
+          name: 'Snapshot Replication Failed'
+          type: ZABBIX_ACTIVE
+          key: 'log[/srv/syslog-ng/log/messages,Failed to sync shared folder replication from (.+) due,,,,\1]'
+          trends: '0'
+          value_type: LOG
+          tags:
+            -
+              tag: SnapReplication
+              value: failed
+          triggers:
+            -
+              uuid: 4e88d196065044238d40e70c744bc5d6
+              expression: 'length(last(/Syno-SnapshotReplication-syslog/log[/srv/syslog-ng/log/messages,Failed to sync shared folder replication from (.+) due,,,,\1]))<>0'
+              name: 'The snapshot replication for VM {ITEM.LASTVALUE} in failed on {HOST.NAME}'
+              priority: DISASTER
+              manual_close: 'YES'
+        -
+          uuid: 590588d26000459c8a7917e9ff2aa290
+          name: 'Snapshot Replication Successful'
+          type: ZABBIX_ACTIVE
+          key: 'log[/srv/syslog-ng/log/messages,Synced shared folder replication from (.+) completed,,,,\1]'
+          trends: '0'
+          value_type: LOG
+          tags:
+            -
+              tag: SnapReplication
+              value: Successful
+          triggers:
+            -
+              uuid: fb0053c29e4c4c7f999fe1e90b564839
+              expression: 'nodata(/Syno-SnapshotReplication-syslog/log[/srv/syslog-ng/log/messages,Synced shared folder replication from (.+) completed,,,,\1],172800,"strict")=1'
+              name: 'No SnapshotReplication data received in the last 2 days on {HOST.NAME}'
+              priority: DISASTER

@@ -1,0 +1,100 @@
+zabbix_export:
+  version: '6.0'
+  date: '2023-02-24T13:50:29Z'
+  groups:
+    -
+      uuid: 327e531d694a47c6946a8a38892afe68
+      name: ActiveBackup-syslog
+  templates:
+    -
+      uuid: f6d1faffadb64aaeb8bf83484d75b220
+      template: Syno-ActiveBackup-syslog
+      name: Syno-ActiveBackup-syslog
+      groups:
+        -
+          name: ActiveBackup-syslog
+      items:
+        -
+          uuid: 77fec0b6ff12465196a745080ea05b9c
+          name: 'ActiveBackup Start Backup'
+          type: ZABBIX_ACTIVE
+          key: 'log[/srv/syslog-ng/log/messages,Starting to back up the VM (\S+)\.,,,,\1]'
+          trends: '0'
+          value_type: LOG
+          tags:
+            -
+              tag: ActiveBackup
+              value: 'Start Backup'
+        -
+          uuid: 7025cf10d77a4552acf4c5ccc4f1f265
+          name: 'ActiveBackup task Failed'
+          type: ZABBIX_ACTIVE
+          key: 'log[/srv/syslog-ng/log/messages,The backup task (.+) failed,,,,\1]'
+          trends: '0'
+          value_type: LOG
+          tags:
+            -
+              tag: ActiveBackupTask
+              value: failed
+        -
+          uuid: 4363f44b1079413eba8b406a4e18faed
+          name: 'ActiveBackup task Successful'
+          type: ZABBIX_ACTIVE
+          key: 'log[/srv/syslog-ng/log/messages,The backup task (.+) was completed,,,,\1]'
+          trends: '0'
+          value_type: LOG
+          tags:
+            -
+              tag: ActiveBackupTask
+              value: Successful
+          triggers:
+            -
+              uuid: 29a753dc6b574e488db84b3f99a77161
+              expression: 'nodata(/Syno-ActiveBackup-syslog/log[/srv/syslog-ng/log/messages,The backup task (.+) was completed,,,,\1],172800,"strict")=1'
+              name: 'No ActiveBackup task data received in the last 2 days on {HOST.NAME}'
+              priority: DISASTER
+        -
+          uuid: 25a95492aa6f468cbfd2805bc0f2fa37
+          name: 'ActiveBackup VM Backup Failed'
+          type: ZABBIX_ACTIVE
+          key: 'log[/srv/syslog-ng/log/messages,The VM (\S+) failed to be backed up\.,,,,\1]'
+          trends: '0'
+          value_type: LOG
+          tags:
+            -
+              tag: ActiveBackupVM
+              value: Failed
+        -
+          uuid: c13c66f39ac547d8b49d58b031b10ce6
+          name: 'ActiveBackup VM Backup Successful'
+          type: ZABBIX_ACTIVE
+          key: 'log[/srv/syslog-ng/log/messages,The VM (\S+) was successfully backed up,,,,\1]'
+          trends: '0'
+          value_type: LOG
+          tags:
+            -
+              tag: ActiveBackupVM
+              value: Successful
+          triggers:
+            -
+              uuid: a0ddc952647643ddbc461814f9b3ab7c
+              expression: 'nodata(/Syno-ActiveBackup-syslog/log[/srv/syslog-ng/log/messages,The VM (\S+) was successfully backed up,,,,\1],172800,"strict")=1'
+              name: 'No ActiveBackup VM data received in the last 2 days on {HOST.NAME}'
+              priority: DISASTER
+  triggers:
+    -
+      uuid: 23732a3b17a841cda8776a874420225f
+      expression: 'length(last(/Syno-ActiveBackup-syslog/log[/srv/syslog-ng/log/messages,The backup task (.+) failed,,,,\1]))<>0'
+      recovery_mode: RECOVERY_EXPRESSION
+      recovery_expression: 'last(/Syno-ActiveBackup-syslog/log[/srv/syslog-ng/log/messages,The backup task (.+) was completed,,,,\1])="{ITEM.LASTVALUE}"'
+      name: 'The backup for task {ITEM.LASTVALUE} in failed on {HOST.NAME}'
+      priority: DISASTER
+      manual_close: 'YES'
+    -
+      uuid: 659b17029c2241798fff1d200cc2c640
+      expression: 'length(last(/Syno-ActiveBackup-syslog/log[/srv/syslog-ng/log/messages,The VM (\S+) failed to be backed up\.,,,,\1]))<>0'
+      recovery_mode: RECOVERY_EXPRESSION
+      recovery_expression: 'last(/Syno-ActiveBackup-syslog/log[/srv/syslog-ng/log/messages,The VM (\S+) was successfully backed up,,,,\1])="{ITEM.LASTVALUE}"'
+      name: 'The backup for VM {ITEM.LASTVALUE} in failed on {HOST.NAME}'
+      priority: DISASTER
+      manual_close: 'YES'
